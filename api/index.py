@@ -5,7 +5,6 @@ import time
 from math import radians, sin, cos, sqrt, atan2
 import os
 from pathlib import Path
-from http import HTTPStatus
 
 app = Flask(__name__)
 
@@ -268,14 +267,6 @@ def search():
         return jsonify({"error": f"查询出错: {str(e)}"}), 500
 
 # Vercel 处理函数
-async def handler(request):
-    """处理 Vercel Serverless 请求"""
-    try:
-        with app.request_context(request):
-            response = await app.handle_async_request()
-            return response
-    except Exception as e:
-        return {
-            'statusCode': HTTPStatus.INTERNAL_SERVER_ERROR,
-            'body': str(e)
-        } 
+def handler(request):
+    """处理 Vercel 请求"""
+    return app 
