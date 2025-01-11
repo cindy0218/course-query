@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, Response
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import pandas as pd
 import requests
 import time
 from math import radians, sin, cos, sqrt, atan2
 import os
 from pathlib import Path
+from http import HTTPStatus
 
 app = Flask(__name__)
 
@@ -267,14 +268,14 @@ def search():
         return jsonify({"error": f"查询出错: {str(e)}"}), 500
 
 # Vercel 处理函数
-def handler(request):
-    """Handle Vercel serverless function request"""
-    if request.method == 'OPTIONS':
-        # Handle CORS preflight request
-        response = Response()
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Access-Control-Allow-Methods'] = 'GET, POST'
-        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return response
-    
-    return app(request) 
+async def handler(request):
+    """处理 Vercel Serverless 请求"""
+    try:
+        with app.request_context(request):
+            response = await app.handle_async_request()
+            return response
+    except Exception as e:
+        return {
+            'statusCode': HTTPStatus.INTERNAL_SERVER_ERROR,
+            'body': str(e)
+        } 
