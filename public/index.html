@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>课程位置查询</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 16px;
+            background-color: #f5f5f5;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .search-box {
+            display: block;
+            margin-bottom: 16px;
+        }
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .filter-select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            font-size: 13px;
+            background-color: white;
+        }
+        .search-input-group {
+            display: flex;
+            gap: 8px;
+        }
+        input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .course {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+        .course strong {
+            display: inline-block;
+            width: 70px;
+            color: #666;
+        }
+        .course div {
+            margin-bottom: 3px;
+        }
+        h3 {
+            color: #333;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .error {
+            color: #dc3545;
+            padding: 12px;
+            background: #f8d7da;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .city-selector {
+            margin-bottom: 12px;
+        }
+        .city-select {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            background-color: white;
+            cursor: pointer;
+        }
+        /* 添加表格样式 */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            margin-bottom: 16px;
+            table-layout: fixed;  /* 固定表格布局 */
+        }
+        .results-table th {
+            background: #fafafa;
+            padding: 8px;
+            text-align: left;
+            font-weight: normal;
+            color: #666;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .results-table td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        /* 设置各列的宽度 */
+        .results-table th:nth-child(1),
+        .results-table td:nth-child(1) {
+            width: 30%;  /* 课程名称列 */
+        }
+        .results-table th:nth-child(2),
+        .results-table td:nth-child(2) {
+            width: 30%;  /* 地址列 */
+        }
+        .results-table th:nth-child(3),
+        .results-table td:nth-child(3),
+        .results-table th:nth-child(4),
+        .results-table td:nth-child(4),
+        .results-table th:nth-child(5),
+        .results-table td:nth-child(5) {
+            width: 8%;  /* 距离、时间列 */
+        }
+        .results-table th:nth-child(6),
+        .results-table td:nth-child(6) {
+            width: 16%;  /* 操作列 */
+        }
+        /* 复制按钮容器 */
+        .copy-button-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .share-btn {
+            background: #722ed1;  /* 紫色区分截图功能 */
+        }
+        .share-btn:hover {
+            background: #9254de;
+        }
+        /* 路线按钮样式 */
+        .route-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #1890ff;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 20px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+        }
+        
+        .route-info {
+            margin-top: 16px;
+        }
+        
+        .route-section {
+            margin-bottom: 24px;
+        }
+        
+        .route-section h4 {
+            margin: 0 0 12px 0;
+            color: #333;
+        }
+        
+        .route-step {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="city-selector">
+            <select id="citySelect" class="city-select" onchange="changeCity()">
+                <option value="上海">上海</option>
+                <option value="北京">北京</option>
+                <!-- 可以根据实际支持的城市添加选项 -->
+            </select>
+        </div>
+        <div class="search-box">
+            <div class="filters">
+                <select id="district" class="filter-select">
+                    <option value="">全部区域</option>
+                </select>
+                <select id="classType" class="filter-select">
+                    <option value="">全部班型</option>
+                </select>
+                <select id="courseType" class="filter-select">
+                    <option value="">全部课程类型</option>
+                </select>
+            </div>
+            <div class="search-input-group">
+                <input type="text" id="address" placeholder="请输入地址">
+                <button onclick="searchCourses()" id="searchBtn">查询</button>
+            </div>
+        </div>
+        <div id="loading" class="loading" style="display: none;">查询中...</div>
+        <div id="results" class="results"></div>
+        <div class="button-group">
+            <button onclick="copyResults()" id="copyBtn" style="display: none;">复制结果</button>
+            <button onclick="shareAsImage()" id="shareBtn" class="share-btn" style="display: none;">生成图片</button>
+        </div>
+    </div>
+
+    <!-- 路线详情模态框 -->
+    <div id="routeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeRouteModal()">&times;</span>
+            <h3>路线详情</h3>
+            <div id="routeInfo" class="route-info"></div>
+            <div class="button-group">
+                <button onclick="copyRouteInfo()" class="copy-btn">复制路线</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 生成查询描述
+        function getQueryDescription(address, filters) {
+            let description = '';
+            
+            // 收集已选的筛选条件
+            const conditions = [];
+            if (filters.district) conditions.push(filters.district);
+            if (filters.class_type) conditions.push(filters.class_type);
+            if (filters.course_type) conditions.push(filters.course_type);
+            
+            if (address) {
+                description = `${address}附近`;
+                if (conditions.length > 0) {
+                    description += conditions.join('') + '课程';
+                } else {
+                    description += '课程';
+                }
+            } else {
+                description = conditions.join('') || '所有';
+                description += '课程';
+            }
+            return description;
+        }
+
+        // 检测是否为移动设备
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        // 页面加载完成后设置分享按钮的显示状态
+        document.addEventListener('DOMContentLoaded', function() {
+            const shareBtn = document.getElementById('shareBtn');
+            if (shareBtn) {
+                shareBtn.style.display = isMobileDevice() ? 'none' : 'none';
+            }
+        });
+
+        let currentCity = '上海';  // 默认城市
+        
+        async function changeCity() {
+            currentCity = document.getElementById('citySelect').value;
+            // 清空现有结果
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('copyBtn').style.display = 'none';
+            // 重新加载筛选选项
+            await loadFilters();
+        }
+        
+        // 修改 loadFilters 函数
+        async function loadFilters() {
+            const response = await fetch(`/filters?city=${currentCity}`);
+            const data = await response.json();
+            
+            // 填充区域选项
+            const districtSelect = document.getElementById('district');
+            districtSelect.innerHTML = '<option value="">全部区域</option>';
+            data.districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtSelect.appendChild(option);
+            });
+            
+            // 填充班型选项
+            const classTypeSelect = document.getElementById('classType');
+            classTypeSelect.innerHTML = '<option value="">全部班型</option>';
+            data.class_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                classTypeSelect.appendChild(option);
+            });
+            
+            // 填充课程类型选项
+            const courseTypeSelect = document.getElementById('courseType');
+            courseTypeSelect.innerHTML = '<option value="">全部课程类型</option>';
+            data.course_types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                courseTypeSelect.appendChild(option);
+            });
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', loadFilters);
+
+        async function searchCourses() {
+            const address = document.getElementById('address').value.trim();
+            // 获取筛选条件
+            const filters = {
+                district: document.getElementById('district').value,
+                class_type: document.getElementById('classType').value,
+                course_type: document.getElementById('courseType').value
+            };
+            
+            const hasFilters = Object.values(filters).some(v => v !== '');
+            
+            // 如果既没有地址也没有筛选条件，提示用户
+            if (!address && !hasFilters) {
+                alert('请输入地址或选择筛选条件');
+                return;
+            }
+
+            const searchBtn = document.getElementById('searchBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const copyBtn = document.getElementById('copyBtn');
+
+            searchBtn.disabled = true;
+            loading.style.display = 'block';
+            results.innerHTML = '';
+            copyBtn.style.display = 'none';
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        address,
+                        filters,
+                        city: currentCity
+                    }),
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    results.innerHTML = `<div class="error">${data.error}</div>`;
+                    return;
+                }
+
+                // 保存搜索结果到全局变量，供路线详情使用
+                window.searchResults = data.results;
+
+                let resultsHtml = `
+                    <div class="results-text" id="results-text">
+                        <h3>您好，以下是${getQueryDescription(address, filters)}：</h3>
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>课程名称</th>
+                                    <th>地址</th>
+                                    ${address ? `
+                                    <th>距离</th>
+                                    <th>驾车时间</th>
+                                    <th>公交时间</th>
+                                    <th>操作</th>
+                                    ` : ''}
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.results.forEach((course, index) => {
+                    resultsHtml += `
+                        <tr class="course">
+                            <td>${course.课程名称}</td>
+                            <td>${course.地址}</td>
+                            ${address ? `
+                            <td>${course.距离 ? course.距离 + '公里' : '-'}</td>
+                            <td>${course.route_info?.driving?.time ? course.route_info.driving.time + '分钟' : '-'}</td>
+                            <td>${course.route_info?.transit?.time ? course.route_info.transit.time + '分钟' : '-'}</td>
+                            <td style="white-space: nowrap;">
+                                <button onclick="showRouteInfo(${index})" class="route-btn">查看路线</button>
+                            </td>
+                            ` : ''}
+                        </tr>
+                    `;
+                });
+
+                resultsHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                results.innerHTML = resultsHtml;
+                copyBtn.style.display = 'block';
+                // 只在移动设备上显示生成图片按钮
+                const shareBtn = document.getElementById('shareBtn');
+                if (shareBtn) {
+                    shareBtn.style.display = isMobileDevice() ? 'block' : 'none';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                results.innerHTML = '<div class="error">查询出错，请稍后重试</div>';
+            } finally {
+                searchBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function copyResults() {
+            const results = document.getElementById('results-text');
+            if (!results) return;
+            
+            let text = results.querySelector('h3').innerText + "\n\n";
+            
+            document.querySelectorAll('.course').forEach(row => {
+                const courseInfo = {
+                    name: row.cells[0].innerText,
+                    address: row.cells[1].innerText,
+                    distance: row.cells[2]?.innerText,
+                    drive: row.cells[3]?.innerText,
+                    transit: row.cells[4]?.innerText
+                };
+                
+                text += `${courseInfo.name}\n`;
+                text += `地址：${courseInfo.address}\n`;
+                if (courseInfo.distance && courseInfo.distance !== '-') text += `距离：${courseInfo.distance}\n`;
+                if (courseInfo.drive && courseInfo.drive !== '-') text += `自驾：${courseInfo.drive}\n`;
+                if (courseInfo.transit && courseInfo.transit !== '-') text += `公交：${courseInfo.transit}\n`;
+                text += '\n';
+            });
+            
+            // 创建临时文本区域
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '0';
+            textArea.style.top = '0';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            
+            // 选择文本
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                // 尝试使用新API
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('复制成功');
+                    });
+                } else {
+                    // 回退到传统方法
+                    const successful = document.execCommand('copy');
+                    alert(successful ? '复制成功' : '复制失败，请手动复制');
+                }
+            } catch (err) {
+                alert('复制失败，请手动复制');
+                console.error('复制失败:', err);
+            } finally {
+                // 清理临时元素
+                document.body.removeChild(textArea);
+            }
+        }
+
+        async function shareAsImage() {
+            const resultsDiv = document.getElementById('results-text');
+            if (!resultsDiv) return;
+
+            console.log('开始生成图片...');
+            let container = null;
+            try {
+                // 首先复制标题文本
+                const titleText = resultsDiv.querySelector('h3').innerText;
+                const textArea = document.createElement('textarea');
+                textArea.value = titleText;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '0';
+                textArea.style.top = '0';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(titleText);
+                        console.log('标题已复制到剪贴板');
+                    } else {
+                        document.execCommand('copy');
+                    }
+                } catch (err) {
+                    console.error('复制标题失败:', err);
+                } finally {
+                    document.body.removeChild(textArea);
+                }
+
+                // 创建临时容器，设置白色背景
+                container = document.createElement('div');
+                container.style.background = 'white';
+                container.style.padding = '20px';
+                container.style.width = '800px';  // 增加宽度
+                container.style.position = 'absolute';
+                container.style.left = '-9999px';  // 移到屏幕外
+                
+                // 克隆结果内容，但不包含标题
+                const clone = resultsDiv.cloneNode(true);
+                clone.querySelector('h3').remove();  // 移除标题
+                
+                // 修改表格样式
+                clone.querySelectorAll('td').forEach(cell => {
+                    cell.style.whiteSpace = 'nowrap';
+                    cell.style.overflow = 'hidden';
+                    cell.style.textOverflow = 'ellipsis';
+                    cell.style.borderRight = '1px solid #eee';  // 添加右边框
+                });
+                
+                // 修改表头样式
+                clone.querySelectorAll('th').forEach(cell => {
+                    cell.style.borderRight = '1px solid #eee';  // 添加右边框
+                });
+                
+                // 确保表格宽度固定
+                const table = clone.querySelector('.results-table');
+                if (table) {
+                    table.style.width = '100%';
+                    table.style.tableLayout = 'fixed';
+                }
+
+                container.appendChild(clone);
+                document.body.appendChild(container);
+
+                console.log('容器尺寸:', container.offsetWidth, 'x', container.offsetHeight);
+
+                // 等待内容完全渲染
+                await new Promise(resolve => setTimeout(resolve, 500));  // 增加等待时间
+
+                console.log('开始转换为canvas...');
+                // 生成图片
+                const canvas = await html2canvas(container, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,  // 提高清晰度
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: true,
+                    width: 800,  // 增加宽度
+                    onclone: function(clonedDoc) {
+                        console.log('克隆的文档:', clonedDoc);
+                    }
+                });
+                
+                if (!canvas) {
+                    throw new Error('Canvas creation failed');
+                }
+                console.log('Canvas created:', canvas.width, 'x', canvas.height);
+
+                console.log('转换为图片数据...');
+                // 转换为图片并下载
+                const image = canvas.toDataURL("image/png", 1.0);  // 使用最高质量
+                console.log('Image data length:', image.length);
+
+                // 移动端兼容处理
+                if (/Android|iPhone/i.test(navigator.userAgent)) {
+                    console.log('检测到移动设备，创建预览...');
+                    // 创建图片预览容器
+                    const previewContainer = document.createElement('div');
+                    previewContainer.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: white;
+                        z-index: 9999;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        padding: 10px;
+                        overflow-y: auto;
+                    `;
+                    
+                    // 创建内容容器
+                    const contentContainer = document.createElement('div');
+                    contentContainer.style.cssText = `
+                        width: 100%;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        position: relative;
+                    `;
+                    
+                    // 添加返回按钮
+                    const backBtn = document.createElement('button');
+                    backBtn.textContent = '返回';
+                    backBtn.style.cssText = `
+                        position: relative;
+                        margin-top: 16px;
+                        margin-bottom: 20px;
+                        float: right;
+                        padding: 6px 12px;
+                        background: #1890ff;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        z-index: 10000;
+                        font-size: 13px;
+                    `;
+                    backBtn.onclick = () => document.body.removeChild(previewContainer);
+                    
+                    // 创建图片元素
+                    const img = document.createElement('img');
+                    img.onload = () => console.log('图片加载成功');
+                    img.onerror = (e) => console.error('图片加载失败:', e);
+                    img.src = image;
+                    img.style.cssText = `
+                        width: 100%;
+                        height: auto;
+                        object-fit: contain;
+                    `;
+                    
+                    contentContainer.appendChild(img);
+                    contentContainer.appendChild(backBtn);
+                    previewContainer.appendChild(contentContainer);
+                    document.body.appendChild(previewContainer);
+                    console.log('预览创建完成');
+                }
+            } catch (error) {
+                console.error('生成图片失败，详细错误:', error);
+                console.error('错误堆栈:', error.stack);
+                if (error.message) {
+                    alert(`生成图片失败: ${error.message}`);
+                } else {
+                    alert('生成图片失败，请稍后重试');
+                }
+            } finally {
+                // 确保临时容器被清理
+                if (container && container.parentNode) {
+                    container.parentNode.removeChild(container);
+                }
+            }
+        }
+
+        // 显示路线详情
+        function showRouteInfo(index) {
+            const course = window.searchResults[index];
+            const modal = document.getElementById('routeModal');
+            const routeInfo = document.getElementById('routeInfo');
+            
+            let html = `
+                <div class="route-section">
+                    <h4>驾车路线</h4>
+                    <div class="route-step">总距离：${course.route_info.driving.distance}公里</div>
+                    <div class="route-step">预计时间：${course.route_info.driving.time}分钟</div>
+                    ${course.route_info.driving.steps.map(step => 
+                        `<div class="route-step">${step}</div>`
+                    ).join('')}
+                </div>
+                
+                <div class="route-section">
+                    <h4>公交路线</h4>
+                    <div class="route-step">预计时间：${course.route_info.transit.time}分钟</div>
+                    ${course.route_info.transit.steps.map(step => {
+                        if (step.type === 'walking') {
+                            return `<div class="route-step">步行${step.distance}米（约${step.duration}分钟）</div>`;
+                        } else {
+                            return `<div class="route-step">乘坐${step.name}，从${step.departure}到${step.arrival}，${step.stops}站（约${step.duration}分钟）</div>`;
+                        }
+                    }).join('')}
+                </div>
+            `;
+            
+            routeInfo.innerHTML = html;
+            modal.style.display = 'block';
+        }
+        
+        // 关闭模态框
+        function closeRouteModal() {
+            document.getElementById('routeModal').style.display = 'none';
+        }
+        
+        // 复制路线信息
+        function copyRouteInfo() {
+            const routeInfo = document.getElementById('routeInfo');
+            const text = routeInfo.innerText;
+            
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '0';
+            textArea.style.top = '0';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('路线信息已复制');
+                    });
+                } else {
+                    const successful = document.execCommand('copy');
+                    alert(successful ? '路线信息已复制' : '复制失败，请手动复制');
+                }
+            } catch (err) {
+                alert('复制失败，请手动复制');
+                console.error('复制失败:', err);
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+    </script>
+</body>
+</html>
