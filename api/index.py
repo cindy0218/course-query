@@ -24,11 +24,18 @@ class CourseService:
         try:
             # Vercel 环境中的数据文件路径
             if os.environ.get('VERCEL'):
-                data_dir = Path('/var/task/public/data')
+                data_dir = Path('public/data')
             else:
-                data_dir = Path('public/data')  # 本地开发环境路径
+                data_dir = Path('public/data')
+            
+            print(f"当前目录: {os.getcwd()}")
+            print(f"数据目录: {data_dir}")
+            print(f"目录是否存在: {data_dir.exists()}")
+            print(f"目录内容: {list(data_dir.glob('*'))}")
             
             files = [f for f in data_dir.glob('*经纬度*.xlsx')]
+            print(f"找到的文件: {files}")
+            
             if not files:
                 raise FileNotFoundError("未找到经纬度数据文件")
             
