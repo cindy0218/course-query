@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 import pandas as pd
 import requests
 import time
@@ -266,7 +266,15 @@ def search():
         print(f"查询出错: {str(e)}")
         return jsonify({"error": f"查询出错: {str(e)}"}), 500
 
-# Vercel 需要的处理函数
+# Vercel 处理函数
 def handler(request):
-    with app.request_context(request):
-        return app.handle_request() 
+    """Handle Vercel serverless function request"""
+    if request.method == 'OPTIONS':
+        # Handle CORS preflight request
+        response = Response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+    
+    return app(request) 
